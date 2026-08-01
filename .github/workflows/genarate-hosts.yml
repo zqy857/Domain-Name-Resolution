@@ -1,4 +1,8 @@
 name: Auto Generate Hosts
+
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
   schedule:
@@ -10,17 +14,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Generate hosts file
+      - name: Install dnsutils (for dig)
         run: |
+          sudo apt-get update
+          sudo apt-get install -y dnsutils
+
+      - name: Generate hosts file (IPv6 only)
+        run: |
+          set -euo pipefail
+
           echo "# Auto-generated hosts, do not edit manually" > hosts.txt
+
+          if [ ! -f domains.txt ]; then
+            echo "domains.txt not found" >&2
+            exit 1
+          fi
+
+          # 只处理非空行且非注释行，去除首尾空白
           while IFS= read -r domain; do
-            if [[ -n "$domain" ]]; then
-              ip6=$(dig +short AAAA "$domain" | head -n1)
-              if [[ -n "$ip6" ]]; then
-                echo "$ip6  $domain" >> hosts.txt
-              fi
+            domain="$(echo "$domain" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+            if [[ -z "$domain" || "${domain:0:1}" == "#" ]]; then
+              continue
             fi
-          done < domains.txt
+
+            ip6=$(dig +short AAAA "$domain" | head -n1 || true)
+            if [[ -n "$ip6" ]]; then
+              echo "$ip6  $domain" >> hosts.txt
+            else
+              echo "No AAAA record for $domain" >&2
+            fi
+          done < <(grep -E -v '^[[:space:]]*(#|$)' domains.txt)
 
       - name: Commit file
         run: |
@@ -28,4 +51,4 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add hosts.txt
           git diff --quiet && git diff --staged --quiet || git commit -m "update hosts"
-          git push || true
+          git push
