@@ -1,3 +1,4 @@
 # Auto-generated hosts, do not edit manually
 2409:8a20:43ed:d2e0:2e0:4cff:fe66:e09c  nas.zqy-personal.eu.org
 2409:8a20:43ed:d2e0:2e0:4cff:fe66:e09c  xn--xyv.cc.cd
+2409:8a20:43ed:d2e0:2e0:4cff:fe66:e09c  xn--gmqq31bwqg.cc.cd
